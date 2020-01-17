@@ -1,1 +1,3 @@
-# CP-ML: Crystallographic Phases via Machine Learning
+# CP-ML
+
+Crystallographic Phases via Machine Learning.
