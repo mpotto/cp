@@ -268,7 +268,33 @@ class CIFParser(BaseParser):
         if phierror:
             refln_df['PHI_ERROR'] = 180.0/np.pi * np.arccos(refln_df['FOM'])
         return refln_df
+    
+    
+class StructureParser(CIFParser, PDBParser):
+    
+    def __init__(self, cif_filename, pdb_filename, 
+                 cif_columns=[
+                "index_h", "index_k", "index_l", 
+                "FOBS", "SIGFOBS", "UOBS", 
+                "SIGUOBS", "FC", "PHI", "FOM", 
+                "RESOL", "pdbx_r_free_flag"
+                ]):
+        self.cif = CIFParser(cif_filename, cif_columns)
+        self.pdb = PDBParser(pdb_filename)
+        
+    def parse(self, integer_indexes=['index_h', 'index_l', 'index_k', 'pdbx_r_free_flag']):
+        self.cif.parse(integer_indexes)
+        self.pdb.parse()
 
+    def structure_df(self, pdb_id=False):
+        structure_df = self.cif.header_refln_df()
+        pdbheader_series = self.pdb.header_to_series()
+        for key in pdbheader_series.keys():
+            structure_df[key] = pdbheader_series[key]
+        if pdb_id:
+            structure_df['ID'] = self.cif.get_pdb_name()
+        return structure_df
+        
 def mw_ext_parse(filename):
     """Gather molecular weight (MW) data stored on
     external file.
@@ -283,22 +309,3 @@ def mw_ext_parse(filename):
     """
     mw_sheet = pd.read_excel(io=filename)
     return mw_sheet
-
-def cifpdb_df(cifdf, pdbheader_series):
-    """Merge CIF pandas DataFrame and PDB header
-    pandas Series into a single pandas DataFrame.
-
-    Parameters
-    ---------
-    cifdf : CIF pandas DataFrame.
-    pdbheader_series : PDB header pandas Series.
-
-    Returns
-    -------
-    master_df : pandas DataFrame containing PDB and
-    CIF parsed information.
-    """
-    master_df = cifdf.copy()
-    for key in pdbheader_series.keys():
-        master_df[key] = pdbheader_series[key]
-    return master_df
